@@ -13,6 +13,7 @@ import SwiftUI
 struct LoginView: View {
     @State private var email: String = ""
     @State private var password: String = ""
+    @State private var Isloading: Bool = false // ログインボタンを押下されたかの判定
     
     var body: some View {
         VStack(alignment:.leading , spacing: 10){
@@ -44,9 +45,9 @@ struct LoginView: View {
             
             // Sign In ボタン
             SignInView(title: "Sign In"){
-                // content
+                try? await Task.sleep(for : .seconds(5)) // 非同期タスク内で、キャンセルされるかもしれない5秒待機を、例外無視で行う
             } onStatusChange : { isLogin in
-                // content
+                Isloading = isLogin // ログイン状態をIsloading に渡している
             }
             .padding(.top, 20)
             .padding(.horizontal , 10)
@@ -69,6 +70,8 @@ struct LoginView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity , alignment: .topLeading)
         .padding(.top, 20)
+        .allowsTightening(!Isloading) // テキストの文字間を詰めてもよいかを指定するモディファイア
+        .opacity(Isloading ? 0.8 : 1) //もし isLoading が true なら 0.8、そうでなければ 1.0 を返す (? は if 分の役割 )
     }
     
     // メアド・パスワードが入力されていなかった場合は Sign In ボタンをアクティブにしない
@@ -98,12 +101,23 @@ struct SignInView: View {
                 .font(.callout)
                 .fontWeight(.semibold)
                 .frame(maxWidth: .infinity)
+                .opacity(isLogin ? 0 : 1) // Title の文言を不透明にする (見えなくする)
+                // ボタンの上にローディング表示をふわっと重ねて出す
+                .overlay(
+                    ProgressView()
+                        .opacity(isLogin ? 1 : 0)
+                )
                 .padding(.vertical, 10)
         }
         .buttonStyle(.borderedProminent)
+        .animation(.easeInOut(duration: 0.1) , value: isLogin ) // isLogin が変わったときに、UI更新を0.25秒でアニメーションさせる
         .buttonBorderShape(.capsule)
         .tint(Color.primary)
         .disabled(isLogin) // 引数のBool値が true のとき、そのViewを操作不能にする修飾子
+        // ログイン状態（isLogin）が変わったら、その新しい状態を外部（親Viewなど）に通知する
+        .onChange(of: isLogin) { oldValue, newValue in
+            onStatusChange(newValue)
+        }
     }
 }
 
