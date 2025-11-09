@@ -85,6 +85,3 @@ struct ToolBarView: View {
     }
 }
 
-#Preview {
-    ToolBarView()
-}
