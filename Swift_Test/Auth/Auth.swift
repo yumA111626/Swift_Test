@@ -14,6 +14,7 @@ struct LoginView: View {
     @State private var email: String = ""
     @State private var password: String = ""
     @State private var Isloading: Bool = false // ログインボタンを押下されたかの判定
+    @State private var createAccount: Bool = false // アカウントを作成するかどうかの判定
     
     var body: some View {
         VStack(alignment:.leading , spacing: 10){
@@ -56,9 +57,9 @@ struct LoginView: View {
             HStack{
                 Text("アカウントをお持ちではないですか？")
                 Button{
-                    
+                    createAccount.toggle() // アカウントを作成する判定
                 } label: {
-                    Text("Sign Up")
+                    Text("アカウントを作成")
                         .underline()
                 }
             }
@@ -72,6 +73,11 @@ struct LoginView: View {
         .padding(.top, 20)
         .allowsTightening(!Isloading) // テキストの文字間を詰めてもよいかを指定するモディファイア
         .opacity(Isloading ? 0.8 : 1) //もし isLoading が true なら 0.8、そうでなければ 1.0 を返す (? は if 分の役割 )
+        .sheet(isPresented:$createAccount){
+            RegisterAccont()
+                .presentationDetents([.height(400)])
+                .presentationBackground(.background)
+        }
     }
     
     // メアド・パスワードが入力されていなかった場合は Sign In ボタンをアクティブにしない
@@ -81,6 +87,62 @@ struct LoginView: View {
     }
 }
 
+// アカウント作成　View
+struct RegisterAccont: View {
+    @State private var email: String = ""
+    @State private var password: String = ""
+    @State private var passwordconfirmation: String = ""
+    @State private var Isloading: Bool = false // ログインボタンを押下されたかの判定
+    
+    var body: some View {
+        VStack(alignment:.leading , spacing: 10){
+            VStack(alignment:.leading , spacing: 8){
+                Text("アカウントを作成しましょう")
+                    .font(.title)
+                Text("簡単に作成可能です")
+                    .textScale(.secondary)
+            }
+            .fontWeight(.medium)
+//            .padding(10)
+            .padding(.top , 20)
+            .padding(.horizontal , 20)
+            
+            CustomTextField(hint:"Eメール アドレス" , symbol : "mail" , value : $email)
+                .padding(.horizontal , 20)
+                .padding(.top , 20)
+            CustomTextField(hint:"パスワード" , symbol : "lock" ,  isPassword: true , value : $password)
+                .padding(.horizontal , 20)
+                .padding(.top , 20)
+            CustomTextField(hint:"パスワードの確認" , symbol : "lock" ,  isPassword: true , value : $passwordconfirmation)
+                .padding(.horizontal , 20)
+                .padding(.top , 20)
+            // Sign In ボタン
+            SignInView(title: "アカウントを作成"){
+                try? await Task.sleep(for : .seconds(5)) // 非同期タスク内で、キャンセルされるかもしれない5秒待機を、例外無視で行う
+            } onStatusChange : { isLogin in
+                Isloading = isLogin // ログイン状態をIsloading に渡している
+            }
+            .padding(.top, 20)
+            .padding(.horizontal , 10)
+            .disabled(!isSignInButtonEnabled) // メアド・パスワードが入力されていないとアクティブにしない
+            
+            Spacer(minLength: 0)
+            
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity , alignment: .topLeading)
+        .padding(.top, 20)
+        .allowsTightening(!Isloading) // テキストの文字間を詰めてもよいかを指定するモディファイア
+        .opacity(Isloading ? 0.8 : 1) //もし isLoading が true なら 0.8、そうでなければ 1.0 を返す (? は if 分の役割 )
+    }
+    
+    // メアド・パスワードが入力されていない + パスワードと確認パスワードが一致しない場合は Sign In ボタンをアクティブにしない
+    var isSignInButtonEnabled: Bool {
+        !email.isEmpty && !password.isEmpty && password == passwordconfirmation // only empty
+//        !email.isEmpty && password.count >= 8 // パスワードの文字列が8文字以上
+    }
+}
+
+// Sign In 画面
 struct SignInView: View {
     var title : String
     var onTask : () async -> () // 非同期で実行する処理を外から注入できるトリガー用の変数
